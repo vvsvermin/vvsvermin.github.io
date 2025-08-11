@@ -16,7 +16,7 @@ timezone: Europe/Vienna
 
 title: vrrmin # the main title
 
-tagline: malware analysist # it will display as the subtitle
+tagline: malware analyst # it will display as the subtitle
 
 description: >- # used by seo meta and the atom feed
   blog

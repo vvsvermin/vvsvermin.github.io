@@ -1,5 +1,5 @@
 ---
-title: "Xred malware in gaming mouse configuration tool"
+title: "Xred malware in Endgame Gear Configuration Tool"
 date: "2025-08-11 00:00:00"
 categories: [misc]
 tags: [misc]

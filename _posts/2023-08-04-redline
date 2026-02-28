@@ -1,0 +1,68 @@
+---
+title: "Redline Stealer deobfuscation"
+date: "2023-08-04 00:00:00"
+categories: [misc]
+tags: [misc]
+---
+
+## Overview
+
+The following sample is sent via email and the attacker pretends that they want to promote a video on your channel. 
+ 
+The packed sample is stored in a zip file and has the size of 718mb and has a spoofed “.scr” extension. So just rename the extension to .exe (or whatever you like). The file was originally called “5.exe” and it’s description claims to be PCI-Z Portable.
+![image](https://user-images.githubusercontent.com/97342354/182909520-966cafc3-5462-4bed-baef-320cc9be8de7.png)
+
+   Running it through Detect it Easy we can see that the binary is in 32bit .NET and protected with SmartAssembly so you’ll need to deobfuscate it first. Since it’s a .NET assembly we can load it into dnSpy and have a look at the code. The main function sets up 3 EventHandlers to call different functions and then calls smethod_0().
+ 
+ ![image](https://user-images.githubusercontent.com/97342354/182909562-56c8f288-5560-4dec-94b2-e152fb5b6765.png)
+
+ 
+The following function downloads a .jpg resource as a byte array, xor decrypts it and saves it as an assembly. Then smethod_0() transfers the assembly via eventhandlers to smethod_2(), where the program tries to get a method out of the decrypted assembly. At this point I’m assuming that the decrypted assembly is a .dll file. 
+ 
+![image](https://user-images.githubusercontent.com/97342354/182909582-3a148573-e052-407d-928c-3157bfe09135.png)
+![image](https://user-images.githubusercontent.com/97342354/182909597-58d77ed5-c811-4ea7-8eb6-8b4b60e82efb.png)
+ 
+ 
+In the last two functions of the executable a Delegate to the targeted function is created and invoked. Now we need to examine the assumed .dll file that is getting decrypted. To obtain it, we can simply place a breakpoint at the end of smethod_1() and either save it from memory or write it to a file. Note that you need to have 32-bit dnSpy installed to debug it. 
+Alright now that we have the dll we can inspect the function that is called. Again, the code is obfuscated sor un it through de4dot first to make it more readable. We know that the we have to look for the function it in the class “Wpmuppzylci”. The code in this dll seems to have many classes filled with functions. As we see later, 99% of the functions are not going to get used.
+
+![image](https://user-images.githubusercontent.com/97342354/182911356-e0795340-6593-439b-8963-c8a073aa86b1.png)
+
+![image](https://user-images.githubusercontent.com/97342354/182909711-e414104c-8ecf-4e29-8cef-a9cffb77703a.png)
+
+
+
+There it is. This converts the byte array to a JSON object, which contains several values for the instructions below.  
+
+![image](https://user-images.githubusercontent.com/97342354/182909727-c28c957d-30c9-457b-9a72-257cfe19139c.png)
+
+Out of all the functions only the marked one and another one at the end gets executed. This functions suspends the process for 35 seconds using powershell code. 
+
+![image](https://user-images.githubusercontent.com/97342354/182909833-c84e3730-4e89-4033-8463-4fb06cbb2cae.png)
+
+
+
+Here the JSON object is used to get an int32 value. To know which functions gets executed or not, I started debugging this dll using SharpDllLoader (https://github.com/hexfati/SharpDllLoader). And nothing gets executed except the last called method.  
+
+![image](https://user-images.githubusercontent.com/97342354/182909846-a1a79d95-1158-4a76-88ba-5e91f4c789e4.png)
+![image](https://user-images.githubusercontent.com/97342354/182909855-83231f93-7a59-4594-a4e5-83d1ed66d312.png)
+
+ 
+This method has a get an enum from the json object and puts it in a switch case. Afterwards the program takes a resource and converts it to a byte array, which is then passed to another function.
+ 
+![image](https://user-images.githubusercontent.com/97342354/182909859-8179334e-eb86-463c-b70f-54ec8cb049c2.png)
+![image](https://user-images.githubusercontent.com/97342354/182909893-4e510dbb-cc57-4d85-a8c5-dfa1554829ec.png)
+![image](https://user-images.githubusercontent.com/97342354/182909902-3e5df4f0-7db3-43ca-b45a-1418f6801605.png)
+
+ 
+Stepping into the function we land in a somewhat big function, where the byte array gets decompressed and reversed.
+ 
+![image](https://user-images.githubusercontent.com/97342354/182909935-9dfe5ead-7e71-41f3-ba40-bbee1d510950.png)
+![image](https://user-images.githubusercontent.com/97342354/182909959-ab506162-9b9e-461a-873d-89e622a88277.png)
+ 
+
+The decompressed byte array is really big in size. There is definetly something in there. Again we need to dump the decompressed array from memory and then we receive an executable.
+Now we have our actual payload. The exe is a RedLine stealer, which steals all sorts of information such as Web Data, Discord Tokens, Steam, etc...
+  
+![image](https://user-images.githubusercontent.com/97342354/182909979-56ce4455-2113-4c64-9339-cd39a8d475c4.png)
+![image](https://user-images.githubusercontent.com/97342354/182909995-6a885e1a-6359-4aa7-9ff5-415eea361448.png)

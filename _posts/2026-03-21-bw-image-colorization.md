@@ -9,5 +9,5 @@ tags: [misc]
 
 I have decided to upload my older deep learning project which I used for my prescientific thesis in high school.
 
-You can check it out here: <br> 
-https://github.com/dvnieli/simple-bw-image-colorization
+You can check it out [here](https://github.com/dvnieli/simple-bw-image-colorization): <br> 
+
